@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共通マスタ管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7f6f4; --panel:#fff; --ink:#1a1917; --ink2:#4e4a44; --muted:#7c766f; --muted2:#aaa49c;
+    --line:#ebe8e2; --line2:#f3f1ec; --ac:#4b56c9; --ac2:#3a44a8; --ac-soft:#ecedf9;
+    --ok:#2f8f5f; --ok-bg:#e8f4ee; --amber:#9a6a23; --amber-bg:#f4ecd8; --red:#c0392b; --red-bg:#f6e5e2; --blue:#2f6ad0; --blue-bg:#e6eefb;
+    --shadow:0 1px 2px rgba(28,24,20,.05),0 12px 32px rgba(28,24,20,.08);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#131211; --panel:#1b1a18; --ink:#ececea; --ink2:#c7c3bd; --muted:#948e86; --muted2:#6e6a63;
+      --line:#2a2825; --line2:#201e1c; --ac:#9098f0; --ac2:#b3b8ff; --ac-soft:#211f33;
+      --ok:#5fd39a; --ok-bg:#10261b; --amber:#e6cf5a; --amber-bg:#3a3212; --red:#e88b7d; --red-bg:#3a1a15; --blue:#7fb0f0; --blue-bg:#132132; }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:"Zen Kaku Gothic New","Noto Sans JP",-apple-system,"Segoe UI","Yu Gothic UI",Meiryo,sans-serif;color:var(--ink);background:var(--paper);line-height:1.55;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;height:100vh}
+  header{background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+  .head{max-width:1120px;margin:0 auto;padding:12px 22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{width:38px;height:38px;border-radius:11px;background:var(--ac);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px}
+  .title h1{margin:0;font-size:17px} .title p{margin:0;font-size:12px;color:var(--muted)}
+  .search{margin-left:auto;position:relative}
+  .search input{width:190px;max-width:38vw;border:1px solid var(--line);border-radius:10px;padding:9px 12px 9px 34px;font-size:13.5px;font-family:inherit;background:var(--paper);color:var(--ink)}
+  .search input:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-soft)}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.45}
+  .btn{border:0;background:var(--ac);color:#fff;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 1px 2px rgba(75,86,201,.3)}
+  .btn:hover{filter:brightness(1.06)} .btn:disabled{opacity:.45;cursor:default;box-shadow:none;filter:none}
+  .btn.sub{background:var(--panel);color:var(--ac);border:1px solid var(--line);box-shadow:none;padding:9px 12px}
+  .sync{font-size:11.5px;font-weight:800;border-radius:999px;padding:5px 11px;white-space:nowrap}
+  .sync.loading{background:var(--line2);color:var(--muted)} .sync.synced{background:var(--ok-bg);color:var(--ok)}
+  .sync.dirty{background:var(--amber-bg);color:var(--amber)} .sync.saving{background:var(--blue-bg);color:var(--blue)} .sync.error{background:var(--red-bg);color:var(--red)}
+  .refbar{max-width:1120px;margin:0 auto;width:100%;padding:12px 22px 0;flex:none}
+  .refbar .in{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 15px;display:flex;align-items:center;gap:13px;flex-wrap:wrap;box-shadow:var(--shadow);font-size:12.5px}
+  .refbar .lb{font-weight:800;color:var(--ac2)} .refbar .arw{color:var(--muted2)}
+  .refbar .r{display:flex;align-items:center;gap:7px;color:var(--ink2)} .refbar .r b{font-variant-numeric:tabular-nums} .refbar .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;background:var(--ac-soft)}
+  .tabs{max-width:1120px;margin:0 auto;width:100%;padding:11px 22px 0;display:flex;gap:4px;flex:none}
+  .tabs button{border:0;background:none;padding:9px 14px;font-size:13.5px;font-weight:700;cursor:pointer;color:var(--muted);font-family:inherit;border-bottom:2.5px solid transparent}
+  .tabs button.on{color:var(--ac);border-bottom-color:var(--ac)} .tabs .cnt{font-size:11px;color:var(--muted2);margin-left:5px}
+  main{flex:1;overflow:hidden;max-width:1120px;margin:0 auto;width:100%;padding:12px 22px 20px;min-height:0}
+  .split{display:flex;gap:16px;height:100%;min-height:0}
+  @media(max-width:760px){.split{flex-direction:column}}
+  .listwrap{flex:1;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-height:0}
+  .grow{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--line2);cursor:pointer;transition:background .1s}
+  .grow:last-child{border-bottom:0} .grow:hover{background:var(--line2)} .grow.sel{background:var(--ac-soft)}
+  .grow.sel .nm{color:var(--ac2)}
+  .grow .nm{font-weight:800;font-size:14px;flex:none;width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .grow .kchips{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+  .kchip{font-size:11.5px;font-weight:700;background:var(--ac-soft);color:var(--ac2);border-radius:999px;padding:2px 10px}
+  .kchip.none{background:var(--line2);color:var(--muted2)}
+  .detail{width:370px;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:auto;padding:18px}
+  @media(max-width:760px){.detail{width:auto}}
+  .detail .empty{color:var(--muted);text-align:center;padding:50px 10px;font-size:13px}
+  .detail h3{margin:0 0 14px;font-size:15px;color:var(--muted);font-weight:800;letter-spacing:.02em}
+  .f{margin-bottom:15px} .f label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .f .opt{color:var(--muted2);font-weight:600}
+  .f input[type=text]{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:15px;font-weight:700;font-family:inherit;background:var(--paper);color:var(--ink)}
+  .f input:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-soft)}
+  .checks{display:flex;flex-wrap:wrap;gap:7px}
+  .chk{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer;user-select:none}
+  .chk.on{border-color:var(--ac);background:var(--ac-soft);color:var(--ac2)} .chk input{accent-color:var(--ac)}
+  .addnew{display:flex;gap:8px;margin-top:9px} .addnew input{flex:1;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--paper);color:var(--ink)}
+  .mref{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 13px;font-size:12.5px;color:var(--ink2)}
+  .mref .l{font-size:10.5px;font-weight:800;color:var(--ac2);letter-spacing:.03em;margin-bottom:5px}
+  .mref .rr{display:flex;gap:8px;padding:3px 0} .mref .rr .k{color:var(--muted);width:96px;flex:none;display:flex;align-items:center;gap:5px}
+  .mref .off{color:var(--muted2)}
+  .dfoot{margin-top:16px;text-align:right} .del{border:0;background:transparent;color:#c0392b;font-weight:700;cursor:pointer;font-family:inherit;font-size:12.5px}
+  .kwrap{flex:1;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-height:0;max-width:560px}
+  .krow{display:flex;align-items:center;gap:12px;padding:11px 15px;border-bottom:1px solid var(--line2)}
+  .krow:last-child{border-bottom:0} .krow .kn{flex:1;font-weight:700;font-size:14px} .krow .kn[contenteditable]:focus{outline:0;background:var(--ac-soft);border-radius:6px;padding:2px 6px}
+  .krow .used{font-size:11.5px;color:var(--muted)} .krow .x{border:0;background:transparent;color:var(--muted2);cursor:pointer;font-size:16px;font-weight:800} .krow .x:hover{color:#c0392b}
+</style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div class="logo">共</div>
+    <div class="title"><h1>共通マスタ管理</h1><p>中央スプレッドシートと同期（人員配置表・直営把握の元データ）</p></div>
+    <div class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="q" placeholder="現場・監督で検索" oninput="renderList()"></div>
+    <button class="btn sub" onclick="loadCentral()" title="中央から再読込">↻ 再読込</button>
+    <button class="btn" id="addBtn" onclick="onAdd()">＋ 追加</button>
+    <button class="btn" id="saveBtn" onclick="pushCentral()" disabled>中央に保存</button>
+    <span id="sync" class="sync loading">読み込み中…</span>
+  </div>
+</header>
+
+<div class="refbar"><div class="in">
+  <span class="lb">反映先</span><span class="arw">→</span>
+  <span class="r"><span class="ic">📊</span>人員配置表 <b id="ref-j">0</b>件（監督が付いた現場のみ）</span><span class="arw">・</span>
+  <span class="r"><span class="ic">📅</span>直営把握 <b id="ref-c">0</b>件（全現場）</span><span class="arw">・</span>
+  <span class="r">監督 <b id="ref-k">0</b>名</span>
+</div></div>
+
+<div class="tabs" id="tabs">
+  <button data-t="genba" class="on">現場マスタ<span class="cnt" id="c-g"></span></button>
+  <button data-t="kantoku">監督マスタ<span class="cnt" id="c-k"></span></button>
+</div>
+
+<main id="main"><div style="padding:40px;text-align:center;color:var(--muted)">中央スプレッドシートから読み込み中…</div></main>
+
+<script>
+  var CENTRAL_URL='https://script.google.com/macros/s/AKfycbyGLG4iW5I8eKuAa9R7mGgaj3zA8yFXhqitPhhoAGnsUcrLeSBBOMBxWq0oxN_hs7zx/exec';
+  var CACHE='kyotsu_master_central_cache';
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const uid=p=>(p||'x')+Math.random().toString(36).slice(2,7);
+
+  let db={genbas:[],kantokus:[]}, tab='genba', selId=null, dirty=false;
+
+  function jsonp(params){
+    return new Promise((res,rej)=>{
+      const cb='__cm'+Math.random().toString(36).slice(2);
+      const s=document.createElement('script');
+      const timer=setTimeout(()=>{cleanup();rej(new Error('タイムアウト'));},15000);
+      function cleanup(){ clearTimeout(timer); delete window[cb]; if(s.parentNode)s.parentNode.removeChild(s); }
+      window[cb]=d=>{ cleanup(); res(d); };
+      s.onerror=()=>{ cleanup(); rej(new Error('通信失敗')); };
+      s.src=CENTRAL_URL+'?'+params+'&callback='+cb;
+      document.body.appendChild(s);
+    });
+  }
+  function setSync(state){
+    const el=document.getElementById('sync'); const sb=document.getElementById('saveBtn');
+    el.className='sync '+state;
+    el.textContent={loading:'読み込み中…',synced:'● 中央と同期済み',dirty:'● 未保存の変更',saving:'● 保存中…',error:'● 保存できません'}[state]||state;
+    sb.disabled=(state!=='dirty');
+  }
+  function normalize(data){
+    return { genbas:(data.genbas||[]).map(g=>({id:g.id,name:g.name,kIds:g.kIds||[]})), kantokus:(data.kantokus||[]).map(k=>({id:k.id,name:k.name})) };
+  }
+  // 保存成功判定用の署名（順不同で比較）
+  function sig(d){
+    const g=d.genbas.map(x=>x.id+'|'+x.name+'|'+(x.kIds||[]).slice().sort().join(',')).sort().join('/');
+    const k=d.kantokus.map(x=>x.id+'|'+x.name).sort().join('/');
+    return g+'#'+k;
+  }
+  function loadCentral(){
+    setSync('loading');
+    jsonp('action=load').then(data=>{
+      if(!data||!data.genbas) throw new Error('bad');
+      db=normalize(data);
+      if(!selId||!gById(selId)) selId=db.genbas[0]?db.genbas[0].id:null;
+      dirty=false; localStorage.setItem(CACHE,JSON.stringify(db)); setSync('synced'); renderTab();
+    }).catch(()=>{
+      try{ const c=JSON.parse(localStorage.getItem(CACHE)); if(c&&c.genbas){ db=c; } }catch(e){}
+      selId=db.genbas[0]?db.genbas[0].id:null; setSync('error'); renderTab();
+    });
+  }
+  function pushCentral(){
+    if(!dirty) return;
+    setSync('saving');
+    const payload=normalize(db);
+    const want=sig(payload);
+    fetch(CENTRAL_URL,{method:'POST',mode:'no-cors',body:JSON.stringify({genbas:payload.genbas,kantokus:payload.kantokus})})
+      .then(()=>jsonp('action=load'))
+      .then(data=>{
+        const server=normalize(data);
+        if(sig(server)===want){ db=server; if(!gById(selId)) selId=db.genbas[0]?db.genbas[0].id:null; dirty=false; localStorage.setItem(CACHE,JSON.stringify(db)); setSync('synced'); renderTab(); }
+        else { setSync('dirty'); alert('保存できませんでした。もう一度「中央に保存」を押してください。'); }
+      }).catch(()=>{ setSync('error'); alert('通信に失敗しました。ネット接続を確認してもう一度お試しください。'); });
+  }
+  function save(){ localStorage.setItem(CACHE,JSON.stringify(db)); dirty=true; setSync('dirty'); }
+
+  const kName=id=>{ const k=db.kantokus.find(x=>x.id===id); return k?k.name:''; };
+  const gById=id=>db.genbas.find(x=>x.id===id);
+  const inJinin=g=>g.kIds.length>0;
+
+  function refresh(){
+    const n=db.genbas.length;
+    document.getElementById('ref-j').textContent=db.genbas.filter(inJinin).length;
+    document.getElementById('ref-c').textContent=n;
+    document.getElementById('ref-k').textContent=db.kantokus.length;
+    document.getElementById('c-g').textContent=n; document.getElementById('c-k').textContent=db.kantokus.length;
+  }
+  const qv=()=>(document.getElementById('q').value||'').trim().toLowerCase();
+
+  function renderTab(){
+    document.getElementById('addBtn').textContent=tab==='genba'?'＋ 現場を追加':'＋ 監督を追加';
+    if(tab==='genba'){
+      document.getElementById('main').innerHTML='<div class="split"><div class="listwrap" id="list"></div><div class="detail" id="detail"></div></div>';
+      renderList(); renderDetail();
+    } else {
+      const rows=db.kantokus.filter(k=>!qv()||k.name.toLowerCase().includes(qv())).map(k=>{
+        const used=db.genbas.filter(g=>g.kIds.includes(k.id)).length;
+        return '<div class="krow"><span class="kn" contenteditable="true" onblur="renameKantoku(\''+k.id+'\',this.innerText)">'+esc(k.name)+'</span><span class="used">'+used+'現場</span><button class="x" onclick="delKantoku(\''+k.id+'\')">×</button></div>';
+      }).join('');
+      document.getElementById('main').innerHTML='<div class="kwrap">'+(rows||'<div style="padding:24px;text-align:center;color:var(--muted)">該当なし</div>')+'</div>';
+    }
+    refresh();
+  }
+  function renderList(){
+    const host=document.getElementById('list'); if(!host)return;
+    const kw=qv();
+    const rows=db.genbas.filter(g=>!kw||(g.name+' '+g.kIds.map(kName).join('')).toLowerCase().includes(kw));
+    host.innerHTML=rows.map(g=>{
+      const names=g.kIds.map(kName).filter(Boolean);
+      const chips=names.length?names.map(n=>'<span class="kchip">'+esc(n)+'</span>').join(''):'<span class="kchip none">監督未設定・人員配置表に出ません</span>';
+      return '<div class="grow'+(g.id===selId?' sel':'')+'" onclick="selectG(\''+g.id+'\')"><span class="nm">'+esc(g.name)+'</span><span class="kchips">'+chips+'</span></div>';
+    }).join('') || '<div style="padding:24px;text-align:center;color:var(--muted)">該当なし</div>';
+  }
+  function selectG(id){ selId=id; renderList(); renderDetail(); }
+  function renderDetail(){
+    const host=document.getElementById('detail'); if(!host)return;
+    const g=gById(selId);
+    if(!g){ host.innerHTML='<div class="empty">左の現場を選ぶと、ここで名前・監督を編集できます。</div>'; return; }
+    host.innerHTML='<h3>現場の編集</h3>'+
+      '<div class="f"><label>現場名（＝工事名）</label><input type="text" id="d-name" value="'+esc(g.name)+'" oninput="onName(this.value)"></div>'+
+      '<div class="f"><label>監督 <span class="opt">（この現場の担当。付けると📊人員配置表に出る／未設定だと出ません。直営把握には出ます。複数可）</span></label><div class="checks" id="checks"></div>'+
+      '<div class="addnew"><input type="text" id="d-newk" placeholder="一覧に無い監督を追加" onkeydown="if(event.key===\'Enter\')addKInline()"><button class="btn sub" onclick="addKInline()">＋</button></div></div>'+
+      '<div class="mref" id="mref"></div>'+
+      '<div class="dfoot"><button class="del" onclick="delGenba()">この現場を削除</button></div>';
+    renderChecks(); renderMref();
+  }
+  function renderChecks(){
+    const g=gById(selId); if(!g)return;
+    document.getElementById('checks').innerHTML=db.kantokus.map(k=>'<label class="chk'+(g.kIds.includes(k.id)?' on':'')+'"><input type="checkbox" '+(g.kIds.includes(k.id)?'checked':'')+' onchange="togK(\''+k.id+'\',this.checked)">'+esc(k.name)+'</label>').join('')
+      || '<span style="font-size:12.5px;color:var(--muted)">監督がいません。下で追加できます。</span>';
+  }
+  function renderMref(){
+    const g=gById(selId); if(!g)return;
+    const nm=g.kIds.map(kName).filter(Boolean);
+    const jline=inJinin(g)?'<div class="rr"><span class="k">📊 人員配置表</span><span>'+esc(g.name)+'（工事名のプルダウン。工期・進捗は人ごとに各自入力）</span></div>'
+                   :'<div class="rr off"><span class="k">📊 人員配置表</span><span>監督未設定のため表示されません</span></div>';
+    document.getElementById('mref').innerHTML='<div class="l">この現場は各システムでこう出ます</div>'+jline+
+      '<div class="rr"><span class="k">📅 直営把握</span><span>'+esc(g.name)+' ／ 監督：'+(nm.length?esc(nm.join('・')):'—')+'</span></div>';
+  }
+  function onName(v){ const g=gById(selId); if(!g)return; g.name=v; save(); renderList(); renderMref(); }
+  function togK(id,on){ const g=gById(selId); if(!g)return; if(on){ if(!g.kIds.includes(id))g.kIds.push(id); } else g.kIds=g.kIds.filter(x=>x!==id); save(); renderChecks(); renderMref(); renderList(); }
+  function addKInline(){ const el=document.getElementById('d-newk'); const v=el.value.trim(); if(!v)return; let k=db.kantokus.find(x=>x.name===v); if(!k){ k={id:uid('p'),name:v}; db.kantokus.push(k); } const g=gById(selId); if(g&&!g.kIds.includes(k.id))g.kIds.push(k.id); save(); el.value=''; renderChecks(); renderMref(); renderList(); }
+  function delGenba(){ const g=gById(selId); if(g&&confirm('「'+g.name+'」を削除しますか？（保存すると両システムの選択肢から消えます）')){ const i=db.genbas.findIndex(x=>x.id===selId); db.genbas=db.genbas.filter(x=>x.id!==selId); selId=db.genbas[Math.max(0,i-1)]?db.genbas[Math.max(0,i-1)].id:(db.genbas[0]?db.genbas[0].id:null); save(); renderList(); renderDetail(); refresh(); } }
+
+  function onAdd(){ if(tab==='genba'){ const g={id:uid('g'),name:'新しい現場',kIds:[]}; db.genbas.unshift(g); selId=g.id; save(); document.getElementById('q').value=''; renderList(); renderDetail(); refresh(); const inp=document.getElementById('d-name'); if(inp){ inp.focus(); inp.select(); } }
+    else{ const n=prompt('監督名を追加'); if(!n)return; const nm=n.trim(); if(!nm)return; if(db.kantokus.some(k=>k.name===nm)){ alert('同じ監督が既にいます'); return; } db.kantokus.push({id:uid('p'),name:nm}); save(); renderTab(); } }
+  function renameKantoku(id,v){ const k=db.kantokus.find(x=>x.id===id); if(k){ const nm=(v||'').trim(); if(nm) k.name=nm; save(); } }
+  function delKantoku(id){ const k=db.kantokus.find(x=>x.id===id); if(!k)return; const used=db.genbas.filter(g=>g.kIds.includes(id)).length;
+    if(!confirm('監督「'+k.name+'」を削除しますか？'+(used?'\n※ '+used+'現場から外れます':''))) return;
+    db.kantokus=db.kantokus.filter(x=>x.id!==id); db.genbas.forEach(g=>g.kIds=g.kIds.filter(x=>x!==id)); save(); renderTab(); }
+
+  document.getElementById('tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return; tab=b.dataset.t; document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b)); document.getElementById('q').value=''; renderTab(); });
+  window.addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+  loadCentral();
+</script>
+</body>
+</html>
