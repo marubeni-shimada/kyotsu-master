@@ -54,6 +54,17 @@
   .grow .kchips{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
   .kchip{font-size:11.5px;font-weight:700;background:var(--ac-soft);color:var(--ac2);border-radius:999px;padding:2px 10px}
   .kchip.none{background:var(--line2);color:var(--muted2)}
+  /* 完了工事（2026-10-15 追加） */
+  .donesec{border-top:2px solid var(--line);margin-top:2px;background:var(--line2)}
+  .donehead{display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:13px;font-weight:800;color:var(--ink2);cursor:pointer;user-select:none}
+  .donehead .chev{transition:transform .15s;opacity:.6} .donesec.open .donehead .chev{transform:rotate(90deg)}
+  .donehead .cnt2{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-size:11.5px;font-weight:700;border-radius:999px;padding:1px 9px}
+  .donehead .hint{font-weight:600;color:var(--muted2);font-size:11.5px}
+  .donebody{display:none} .donesec.open .donebody{display:block}
+  .grow.done{background:var(--panel);opacity:.9} .grow.done:hover{background:var(--line2)}
+  .grow.done .nm{color:var(--muted)} .grow.done .kchip{background:var(--line2);color:var(--muted2)}
+  .restore{border:1px solid var(--ok);background:var(--ok-bg);color:var(--ok);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;flex:none;margin-left:auto}
+  .donebanner{background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:14px}
   .detail{width:370px;flex:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:auto;padding:18px}
   @media(max-width:760px){.detail{width:auto}}
   .detail .empty{color:var(--muted);text-align:center;padding:50px 10px;font-size:13px}
@@ -70,7 +81,10 @@
   .mref .l{font-size:10.5px;font-weight:800;color:var(--ac2);letter-spacing:.03em;margin-bottom:5px}
   .mref .rr{display:flex;gap:8px;padding:3px 0} .mref .rr .k{color:var(--muted);width:96px;flex:none;display:flex;align-items:center;gap:5px}
   .mref .off{color:var(--muted2)}
-  .dfoot{margin-top:16px;text-align:right} .del{border:0;background:transparent;color:#c0392b;font-weight:700;cursor:pointer;font-family:inherit;font-size:12.5px}
+  .dfoot{margin-top:16px;display:flex;align-items:center;gap:12px}
+  .endbtn{border:0;background:var(--amber-bg);color:var(--amber);border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px}
+  .restorebtn{border:0;background:var(--ok-bg);color:var(--ok);border-radius:9px;padding:9px 14px;font-weight:800;cursor:pointer;font-family:inherit;font-size:13px}
+  .del{border:0;background:transparent;color:#c0392b;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px;margin-left:auto}
   .kwrap{flex:1;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);min-height:0;max-width:560px}
   .krow{display:flex;align-items:center;gap:12px;padding:11px 15px;border-bottom:1px solid var(--line2)}
   .krow:last-child{border-bottom:0} .krow .kn{flex:1;font-weight:700;font-size:14px} .krow .kn[contenteditable]:focus{outline:0;background:var(--ac-soft);border-radius:6px;padding:2px 6px}
@@ -92,8 +106,8 @@
 
 <div class="refbar"><div class="in">
   <span class="lb">反映先</span><span class="arw">→</span>
-  <span class="r"><span class="ic">📊</span>人員配置表 <b id="ref-j">0</b>件（監督が付いた現場のみ）</span><span class="arw">・</span>
-  <span class="r"><span class="ic">📅</span>直営把握 <b id="ref-c">0</b>件（全現場）</span><span class="arw">・</span>
+  <span class="r"><span class="ic">📊</span>人員配置表 <b id="ref-j">0</b>件（監督が付いた進行中の現場）</span><span class="arw">・</span>
+  <span class="r"><span class="ic">📅</span>直営把握 <b id="ref-c">0</b>件（進行中の全現場）</span><span class="arw">・</span>
   <span class="r">監督 <b id="ref-k">0</b>名</span>
 </div></div>
 
@@ -110,7 +124,7 @@
   const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const uid=p=>(p||'x')+Math.random().toString(36).slice(2,7);
 
-  let db={genbas:[],kantokus:[]}, tab='genba', selId=null, dirty=false;
+  let db={genbas:[],kantokus:[]}, tab='genba', selId=null, dirty=false, doneOpen=true;
 
   function jsonp(params){
     return new Promise((res,rej)=>{
@@ -131,11 +145,11 @@
     sb.disabled=(state!=='dirty');
   }
   function normalize(data){
-    return { genbas:(data.genbas||[]).map(g=>({id:g.id,name:g.name,kIds:g.kIds||[]})), kantokus:(data.kantokus||[]).map(k=>({id:k.id,name:k.name})) };
+    return { genbas:(data.genbas||[]).map(g=>({id:g.id,name:g.name,kIds:g.kIds||[],done:!!g.done})), kantokus:(data.kantokus||[]).map(k=>({id:k.id,name:k.name})) };
   }
-  // 保存成功判定用の署名（順不同で比較）
+  // 保存成功判定用の署名（順不同で比較。done も含める）
   function sig(d){
-    const g=d.genbas.map(x=>x.id+'|'+x.name+'|'+(x.kIds||[]).slice().sort().join(',')).sort().join('/');
+    const g=d.genbas.map(x=>x.id+'|'+x.name+'|'+(x.done?1:0)+'|'+(x.kIds||[]).slice().sort().join(',')).sort().join('/');
     const k=d.kantokus.map(x=>x.id+'|'+x.name).sort().join('/');
     return g+'#'+k;
   }
@@ -144,11 +158,11 @@
     jsonp('action=load').then(data=>{
       if(!data||!data.genbas) throw new Error('bad');
       db=normalize(data);
-      if(!selId||!gById(selId)) selId=db.genbas[0]?db.genbas[0].id:null;
+      if(!selId||!gById(selId)) selId=firstActive();
       dirty=false; localStorage.setItem(CACHE,JSON.stringify(db)); setSync('synced'); renderTab();
     }).catch(()=>{
-      try{ const c=JSON.parse(localStorage.getItem(CACHE)); if(c&&c.genbas){ db=c; } }catch(e){}
-      selId=db.genbas[0]?db.genbas[0].id:null; setSync('error'); renderTab();
+      try{ const c=JSON.parse(localStorage.getItem(CACHE)); if(c&&c.genbas){ db=normalize(c); } }catch(e){}
+      selId=firstActive(); setSync('error'); renderTab();
     });
   }
   function pushCentral(){
@@ -160,7 +174,7 @@
       .then(()=>jsonp('action=load'))
       .then(data=>{
         const server=normalize(data);
-        if(sig(server)===want){ db=server; if(!gById(selId)) selId=db.genbas[0]?db.genbas[0].id:null; dirty=false; localStorage.setItem(CACHE,JSON.stringify(db)); setSync('synced'); renderTab(); }
+        if(sig(server)===want){ db=server; if(!gById(selId)) selId=firstActive(); dirty=false; localStorage.setItem(CACHE,JSON.stringify(db)); setSync('synced'); renderTab(); }
         else { setSync('dirty'); alert('保存できませんでした。もう一度「中央に保存」を押してください。'); }
       }).catch(()=>{ setSync('error'); alert('通信に失敗しました。ネット接続を確認してもう一度お試しください。'); });
   }
@@ -169,13 +183,14 @@
   const kName=id=>{ const k=db.kantokus.find(x=>x.id===id); return k?k.name:''; };
   const gById=id=>db.genbas.find(x=>x.id===id);
   const inJinin=g=>g.kIds.length>0;
+  const isLive=g=>!g.done;   // 終了していない＝進行中＝両システムに出る
+  const firstActive=()=>{ const a=db.genbas.filter(isLive); return a[0]?a[0].id:(db.genbas[0]?db.genbas[0].id:null); };
 
   function refresh(){
-    const n=db.genbas.length;
-    document.getElementById('ref-j').textContent=db.genbas.filter(inJinin).length;
-    document.getElementById('ref-c').textContent=n;
+    document.getElementById('ref-j').textContent=db.genbas.filter(g=>isLive(g)&&inJinin(g)).length;
+    document.getElementById('ref-c').textContent=db.genbas.filter(isLive).length;
     document.getElementById('ref-k').textContent=db.kantokus.length;
-    document.getElementById('c-g').textContent=n; document.getElementById('c-k').textContent=db.kantokus.length;
+    document.getElementById('c-g').textContent=db.genbas.filter(isLive).length; document.getElementById('c-k').textContent=db.kantokus.length;
   }
   const qv=()=>(document.getElementById('q').value||'').trim().toLowerCase();
 
@@ -193,27 +208,42 @@
     }
     refresh();
   }
+  function growHtml(g,isDone){
+    const names=g.kIds.map(kName).filter(Boolean);
+    const chips=names.length?names.map(n=>'<span class="kchip">'+esc(n)+'</span>').join(''):'<span class="kchip none">監督未設定'+(isDone?'':'・人員配置表に出ません')+'</span>';
+    if(isDone) return '<div class="grow done'+(g.id===selId?' sel':'')+'" onclick="selectG(\''+g.id+'\')"><span class="nm">'+esc(g.name)+'</span><span class="kchips">'+chips+'</span><button class="restore" onclick="event.stopPropagation();restoreGenba(\''+g.id+'\')">↩ 戻す</button></div>';
+    return '<div class="grow'+(g.id===selId?' sel':'')+'" onclick="selectG(\''+g.id+'\')"><span class="nm">'+esc(g.name)+'</span><span class="kchips">'+chips+'</span></div>';
+  }
   function renderList(){
     const host=document.getElementById('list'); if(!host)return;
     const kw=qv();
-    const rows=db.genbas.filter(g=>!kw||(g.name+' '+g.kIds.map(kName).join('')).toLowerCase().includes(kw));
-    host.innerHTML=rows.map(g=>{
-      const names=g.kIds.map(kName).filter(Boolean);
-      const chips=names.length?names.map(n=>'<span class="kchip">'+esc(n)+'</span>').join(''):'<span class="kchip none">監督未設定・人員配置表に出ません</span>';
-      return '<div class="grow'+(g.id===selId?' sel':'')+'" onclick="selectG(\''+g.id+'\')"><span class="nm">'+esc(g.name)+'</span><span class="kchips">'+chips+'</span></div>';
-    }).join('') || '<div style="padding:24px;text-align:center;color:var(--muted)">該当なし</div>';
+    const match=g=>!kw||(g.name+' '+g.kIds.map(kName).join('')).toLowerCase().includes(kw);
+    const active=db.genbas.filter(g=>isLive(g)&&match(g));
+    const done=db.genbas.filter(g=>!isLive(g)&&match(g));
+    let html=active.length?active.map(g=>growHtml(g,false)).join(''):'<div style="padding:24px;text-align:center;color:var(--muted)">進行中の現場はありません</div>';
+    html+='<div class="donesec'+(doneOpen?' open':'')+'"><div class="donehead" onclick="toggleDone()">'+
+      '<svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
+      '完了工事 <span class="cnt2">'+done.length+'件</span> <span class="hint">（人員配置表・直営把握の両方から非表示・いつでも戻せます）</span></div>'+
+      '<div class="donebody">'+(done.length?done.map(g=>growHtml(g,true)).join(''):'<div style="padding:12px 15px;color:var(--muted2);font-size:12.5px">まだありません</div>')+'</div></div>';
+    host.innerHTML=html;
   }
+  function toggleDone(){ doneOpen=!doneOpen; renderList(); }
   function selectG(id){ selId=id; renderList(); renderDetail(); }
   function renderDetail(){
     const host=document.getElementById('detail'); if(!host)return;
     const g=gById(selId);
     if(!g){ host.innerHTML='<div class="empty">左の現場を選ぶと、ここで名前・監督を編集できます。</div>'; return; }
-    host.innerHTML='<h3>現場の編集</h3>'+
+    const banner=g.done?'<div class="donebanner">⏹ この現場は「完了工事」です。人員配置表・直営把握の両方から非表示になっています。「戻す」で両方に復活します。</div>':'';
+    host.innerHTML='<h3>現場の編集</h3>'+banner+
       '<div class="f"><label>現場名（＝工事名）</label><input type="text" id="d-name" value="'+esc(g.name)+'" oninput="onName(this.value)"></div>'+
       '<div class="f"><label>監督 <span class="opt">（この現場の担当。付けると📊人員配置表に出る／未設定だと出ません。直営把握には出ます。複数可）</span></label><div class="checks" id="checks"></div>'+
       '<div class="addnew"><input type="text" id="d-newk" placeholder="一覧に無い監督を追加" onkeydown="if(event.key===\'Enter\')addKInline()"><button class="btn sub" onclick="addKInline()">＋</button></div></div>'+
       '<div class="mref" id="mref"></div>'+
-      '<div class="dfoot"><button class="del" onclick="delGenba()">この現場を削除</button></div>';
+      '<div class="dfoot">'+
+        (g.done?'<button class="restorebtn" onclick="restoreGenba(\''+g.id+'\')">↩ 進行中に戻す</button>'
+                :'<button class="endbtn" onclick="endGenba()">⏹ この現場を終了（完了工事へ）</button>')+
+        '<button class="del" onclick="delGenba()">完全に削除</button>'+
+      '</div>';
     renderChecks(); renderMref();
   }
   function renderChecks(){
@@ -224,17 +254,29 @@
   function renderMref(){
     const g=gById(selId); if(!g)return;
     const nm=g.kIds.map(kName).filter(Boolean);
+    if(g.done){
+      document.getElementById('mref').innerHTML='<div class="l">この現場は各システムでこう出ます</div>'+
+        '<div class="rr off"><span class="k">📊 人員配置表</span><span>完了工事のため非表示</span></div>'+
+        '<div class="rr off"><span class="k">📅 直営把握</span><span>完了工事のため非表示</span></div>';
+      return;
+    }
     const jline=inJinin(g)?'<div class="rr"><span class="k">📊 人員配置表</span><span>'+esc(g.name)+'（工事名のプルダウン。工期・進捗は人ごとに各自入力）</span></div>'
                    :'<div class="rr off"><span class="k">📊 人員配置表</span><span>監督未設定のため表示されません</span></div>';
     document.getElementById('mref').innerHTML='<div class="l">この現場は各システムでこう出ます</div>'+jline+
       '<div class="rr"><span class="k">📅 直営把握</span><span>'+esc(g.name)+' ／ 監督：'+(nm.length?esc(nm.join('・')):'—')+'</span></div>';
   }
   function onName(v){ const g=gById(selId); if(!g)return; g.name=v; save(); renderList(); renderMref(); }
-  function togK(id,on){ const g=gById(selId); if(!g)return; if(on){ if(!g.kIds.includes(id))g.kIds.push(id); } else g.kIds=g.kIds.filter(x=>x!==id); save(); renderChecks(); renderMref(); renderList(); }
-  function addKInline(){ const el=document.getElementById('d-newk'); const v=el.value.trim(); if(!v)return; let k=db.kantokus.find(x=>x.name===v); if(!k){ k={id:uid('p'),name:v}; db.kantokus.push(k); } const g=gById(selId); if(g&&!g.kIds.includes(k.id))g.kIds.push(k.id); save(); el.value=''; renderChecks(); renderMref(); renderList(); }
-  function delGenba(){ const g=gById(selId); if(g&&confirm('「'+g.name+'」を削除しますか？（保存すると両システムの選択肢から消えます）')){ const i=db.genbas.findIndex(x=>x.id===selId); db.genbas=db.genbas.filter(x=>x.id!==selId); selId=db.genbas[Math.max(0,i-1)]?db.genbas[Math.max(0,i-1)].id:(db.genbas[0]?db.genbas[0].id:null); save(); renderList(); renderDetail(); refresh(); } }
+  function togK(id,on){ const g=gById(selId); if(!g)return; if(on){ if(!g.kIds.includes(id))g.kIds.push(id); } else g.kIds=g.kIds.filter(x=>x!==id); save(); renderChecks(); renderMref(); renderList(); refresh(); }
+  function addKInline(){ const el=document.getElementById('d-newk'); const v=el.value.trim(); if(!v)return; let k=db.kantokus.find(x=>x.name===v); if(!k){ k={id:uid('p'),name:v}; db.kantokus.push(k); } const g=gById(selId); if(g&&!g.kIds.includes(k.id))g.kIds.push(k.id); save(); el.value=''; renderChecks(); renderMref(); renderList(); refresh(); }
 
-  function onAdd(){ if(tab==='genba'){ const g={id:uid('g'),name:'新しい現場',kIds:[]}; db.genbas.unshift(g); selId=g.id; save(); document.getElementById('q').value=''; renderList(); renderDetail(); refresh(); const inp=document.getElementById('d-name'); if(inp){ inp.focus(); inp.select(); } }
+  // ★ 終了（完了工事へ移動）／戻す／完全削除
+  function endGenba(){ const g=gById(selId); if(!g)return;
+    if(!confirm('「'+g.name+'」を終了にして完了工事へ移動しますか？\n・保存すると人員配置表・直営把握の両方から外れます\n・いつでも「戻す」で復活できます')) return;
+    g.done=true; save(); selId=firstActive(); renderList(); renderDetail(); refresh(); }
+  function restoreGenba(id){ const g=gById(id); if(!g)return; g.done=false; save(); selId=id; doneOpen=true; renderList(); renderDetail(); refresh(); }
+  function delGenba(){ const g=gById(selId); if(g&&confirm('「'+g.name+'」を完全に削除しますか？\n※ 復元できません。ふだんは「終了」を使ってください。（保存すると両システムの選択肢から消えます）')){ const i=db.genbas.findIndex(x=>x.id===selId); db.genbas=db.genbas.filter(x=>x.id!==selId); selId=firstActive(); save(); renderList(); renderDetail(); refresh(); } }
+
+  function onAdd(){ if(tab==='genba'){ const g={id:uid('g'),name:'新しい現場',kIds:[],done:false}; db.genbas.unshift(g); selId=g.id; save(); document.getElementById('q').value=''; renderList(); renderDetail(); refresh(); const inp=document.getElementById('d-name'); if(inp){ inp.focus(); inp.select(); } }
     else{ const n=prompt('監督名を追加'); if(!n)return; const nm=n.trim(); if(!nm)return; if(db.kantokus.some(k=>k.name===nm)){ alert('同じ監督が既にいます'); return; } db.kantokus.push({id:uid('p'),name:nm}); save(); renderTab(); } }
   function renameKantoku(id,v){ const k=db.kantokus.find(x=>x.id===id); if(k){ const nm=(v||'').trim(); if(nm) k.name=nm; save(); } }
   function delKantoku(id){ const k=db.kantokus.find(x=>x.id===id); if(!k)return; const used=db.genbas.filter(g=>g.kIds.includes(id)).length;
